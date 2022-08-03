@@ -6,7 +6,7 @@ import argparse
 from tensorpack import *
 from tensorpack.tfutils import collect_env_info
 
-from dataset import register_coco, register_balloon
+from dataset import register_coco, register_balloon, register_roof
 from config import config as cfg
 from config import finalize_configs
 from data import get_train_dataflow
@@ -24,6 +24,7 @@ if __name__ == '__main__':
     # "spawn/forkserver" is safer than the default "fork" method and
     # produce more deterministic behavior & memory saving
     # However its limitation is you cannot pass a lambda function to subprocesses.
+
     import multiprocessing as mp
     mp.set_start_method('spawn')
     parser = argparse.ArgumentParser()
@@ -36,8 +37,9 @@ if __name__ == '__main__':
     if args.config:
         cfg.update_args(args.config)
     register_coco(cfg.DATA.BASEDIR)  # add COCO datasets to the registry
-    register_balloon(cfg.DATA.BASEDIR)  # add the demo balloon datasets to the registry
-
+    register_roof(cfg.DATA.BASEDIR) # add the demo balloon datasets to the registry
+    register_balloon(cfg.DATA.BASEDIR) 
+    
     # Setup logging ...
     is_horovod = cfg.TRAINER == 'horovod'
     if is_horovod:

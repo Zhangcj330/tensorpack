@@ -9,7 +9,7 @@ class DatasetSplit():
     """
     A class to load datasets, evaluate results for a datast split (e.g., "coco_train_2017")
 
-    To use your own dataset that's not in COCO format, write a subclass that
+    To use your own dataset that's not in COCO format, write a suregister_balloonclass that
     implements the interfaces.
     """
     def training_roidbs(self):
@@ -17,7 +17,7 @@ class DatasetSplit():
         Returns:
             roidbs (list[dict]):
 
-        Produce "roidbs" as a list of dict, each dict corresponds to one image with k>=0 instances.
+        Produce "roidbs" as a list of dict, eachregister_balloon dict corresponds to one image with k>=0 instances.
         and the following keys are expected for training:
 
         file_name: str, full path to the image

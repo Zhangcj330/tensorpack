@@ -92,12 +92,12 @@ _C.MODE_MASK = True        # Faster R-CNN or Mask R-CNN
 _C.MODE_FPN = True
 
 # dataset -----------------------
-_C.DATA.BASEDIR = '/path/to/your/DATA/DIR'
+_C.DATA.BASEDIR = '~/data/pylon'
 # All available dataset names are defined in `dataset/coco.py:register_coco`.
 # All TRAIN dataset will be concatenated for training.
-_C.DATA.TRAIN = ('coco_train2017',)   # i.e. trainval35k
+_C.DATA.TRAIN = ('roof_train-pylon',)   # i.e. trainval35k
 # Each VAL dataset will be evaluated separately (instead of concatenated)
-_C.DATA.VAL = ('coco_val2017',)  # AKA minival2014
+_C.DATA.VAL = ('roof_val-pylon',)  # AKA minival2014
 
 # These two configs will be populated later inside `finalize_configs`.
 _C.DATA.NUM_CATEGORY = -1  # without the background class (e.g., 80 for COCO)

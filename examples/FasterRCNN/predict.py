@@ -15,15 +15,15 @@ from tensorpack.tfutils import SmartInit, get_tf_version_tuple
 from tensorpack.tfutils.export import ModelExporter
 from tensorpack.utils import fs, logger
 
-from dataset import DatasetRegistry, register_coco, register_balloon
+from dataset import DatasetRegistry, register_coco, register_balloon, register_roof
 from config import config as cfg
 from config import finalize_configs
 from data import get_eval_dataflow, get_train_dataflow
-from eval import DetectionResult, multithread_predict_dataflow, predict_image
+from eval import DetectionResult, multithread_predict_dataflow, predict_image,eval_inference_results
 from modeling.generalized_rcnn import ResNetC4Model, ResNetFPNModel
 from viz import (
     draw_annotation, draw_final_outputs, draw_predictions,
-    draw_proposal_recall, draw_final_outputs_blackwhite)
+    draw_proposal_recall, draw_final_outputs_blackwhite,gt_mask, apply_masks,draw_outputs)
 
 
 def do_visualize(model, model_path, nr_visualize=100, output_dir='output'):
@@ -32,11 +32,11 @@ def do_visualize(model, model_path, nr_visualize=100, output_dir='output'):
     """
     df = get_train_dataflow()
     df.reset_state()
-
+ 
     pred = OfflinePredictor(PredictConfig(
         model=model,
         session_init=SmartInit(model_path),
-        input_names=['image', 'gt_boxes', 'gt_labels'],
+        input_names=['image', 'gt_boxes', 'gt_labels','gt_masks_packed'],
         output_names=[
             'generate_{}_proposals/boxes'.format('fpn' if cfg.MODE_FPN else 'rpn'),
             'generate_{}_proposals/scores'.format('fpn' if cfg.MODE_FPN else 'rpn'),
@@ -44,6 +44,7 @@ def do_visualize(model, model_path, nr_visualize=100, output_dir='output'):
             'output/boxes',
             'output/scores',
             'output/labels',
+            'output/masks',
         ]))
 
     if os.path.isdir(output_dir):
@@ -51,13 +52,14 @@ def do_visualize(model, model_path, nr_visualize=100, output_dir='output'):
     fs.mkdir_p(output_dir)
     with tqdm.tqdm(total=nr_visualize) as pbar:
         for idx, dp in itertools.islice(enumerate(df), nr_visualize):
-            img, gt_boxes, gt_labels = dp['image'], dp['gt_boxes'], dp['gt_labels']
+            img, gt_boxes, gt_labels, gt_masks = dp['image'], dp['gt_boxes'], dp['gt_labels'],dp['gt_masks_packed']
 
             rpn_boxes, rpn_scores, all_scores, \
-                final_boxes, final_scores, final_labels = pred(img, gt_boxes, gt_labels)
-
+                final_boxes, final_scores, final_labels, masks = pred(img, gt_boxes, gt_labels,gt_masks)
+            
             # draw groundtruth boxes
             gt_viz = draw_annotation(img, gt_boxes, gt_labels)
+        
             # draw best proposals for each groundtruth, to show recall
             proposal_viz, good_proposals_ind = draw_proposal_recall(img, rpn_boxes, rpn_scores, gt_boxes)
             # draw the scores for the above proposals
@@ -66,11 +68,15 @@ def do_visualize(model, model_path, nr_visualize=100, output_dir='output'):
             results = [DetectionResult(*args) for args in
                        zip(final_boxes, final_scores, final_labels,
                            [None] * len(final_labels))]
-            final_viz = draw_final_outputs(img, results)
+            final_output_viz = draw_final_outputs(img, results)
+
+            masked_box_viz = apply_masks(img, final_boxes, masks, final_scores, score_threshold=.5, mask_threshold=0.5)
+     
+            final_viz = draw_outputs(masked_box_viz, final_boxes, final_scores, final_labels, threshold=0.5)
 
             viz = tpviz.stack_patches([
-                gt_viz, proposal_viz,
-                score_viz, final_viz], 2, 2)
+                gt_viz, final_output_viz,
+                masked_box_viz, final_viz], 2, 2)
 
             if os.environ.get('DISPLAY', None):
                 tpviz.interactive_imshow(viz)
@@ -125,6 +131,7 @@ if __name__ == '__main__':
         cfg.update_args(args.config)
     register_coco(cfg.DATA.BASEDIR)  # add COCO datasets to the registry
     register_balloon(cfg.DATA.BASEDIR)
+    register_roof(cfg.DATA.BASEDIR)
 
     MODEL = ResNetFPNModel() if cfg.MODE_FPN else ResNetC4Model()
 
