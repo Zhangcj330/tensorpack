@@ -18,8 +18,8 @@ from tensorpack.utils import fs, logger
 from dataset import DatasetRegistry, register_coco, register_balloon, register_roof
 from config import config as cfg
 from config import finalize_configs
-from data import get_eval_dataflow, get_train_dataflow
-from eval import DetectionResult, multithread_predict_dataflow, predict_image,eval_inference_results
+from data import get_eval_dataflow, get_train_dataflow,get_val_dataflow
+from eval import DetectionResult, multithread_predict_dataflow, predict_image
 from modeling.generalized_rcnn import ResNetC4Model, ResNetFPNModel
 from viz import (
     draw_annotation, draw_final_outputs, draw_predictions,
@@ -55,7 +55,7 @@ def do_visualize(model, model_path, nr_visualize=100, output_dir='output'):
             img, gt_boxes, gt_labels, gt_masks = dp['image'], dp['gt_boxes'], dp['gt_labels'],dp['gt_masks_packed']
 
             rpn_boxes, rpn_scores, all_scores, \
-                final_boxes, final_scores, final_labels, masks = pred(img, gt_boxes, gt_labels,gt_masks)
+                final_boxes, final_scores, final_labels, masks = pred(img, gt_boxes, gt_labels, gt_masks)
             
             # draw groundtruth boxes
             gt_viz = draw_annotation(img, gt_boxes, gt_labels)
@@ -83,6 +83,62 @@ def do_visualize(model, model_path, nr_visualize=100, output_dir='output'):
             cv2.imwrite("{}/{:03d}.png".format(output_dir, idx), viz)
             pbar.update()
 
+def do_visualize_val(model, model_path, nr_visualize=100, output_dir='visualizaion_output_val'):
+    """
+    Visualize some intermediate results (proposals, raw predictions) inside the pipeline.
+    """
+    df = get_val_dataflow()
+    df.reset_state()
+ 
+    pred = OfflinePredictor(PredictConfig(
+        model=model,
+        session_init=SmartInit(model_path),
+        input_names=['image', 'gt_boxes', 'gt_labels','gt_masks_packed'],
+        output_names=[
+            'generate_{}_proposals/boxes'.format('fpn' if cfg.MODE_FPN else 'rpn'),
+            'generate_{}_proposals/scores'.format('fpn' if cfg.MODE_FPN else 'rpn'),
+            'fastrcnn_all_scores',
+            'output/boxes',
+            'output/scores',
+            'output/labels',
+            'output/masks',
+        ]))
+
+    if os.path.isdir(output_dir):
+        shutil.rmtree(output_dir)
+    fs.mkdir_p(output_dir)
+    with tqdm.tqdm(total=nr_visualize) as pbar:
+        for idx, dp in itertools.islice(enumerate(df), nr_visualize):
+            img, gt_boxes, gt_labels, gt_masks = dp['image'], dp['gt_boxes'], dp['gt_labels'],dp['gt_masks_packed']
+
+            rpn_boxes, rpn_scores, all_scores, \
+                final_boxes, final_scores, final_labels, masks = pred(img, gt_boxes, gt_labels, gt_masks)
+            
+            # draw groundtruth boxes
+            gt_viz = draw_annotation(img, gt_boxes, gt_labels)
+        
+            # draw best proposals for each groundtruth, to show recall
+            proposal_viz, good_proposals_ind = draw_proposal_recall(img, rpn_boxes, rpn_scores, gt_boxes)
+            # draw the scores for the above proposals
+            score_viz = draw_predictions(img, rpn_boxes[good_proposals_ind], all_scores[good_proposals_ind])
+
+            results = [DetectionResult(*args) for args in
+                       zip(final_boxes, final_scores, final_labels,
+                           [None] * len(final_labels))]
+            final_output_viz = draw_final_outputs(img, results)
+
+            masked_box_viz = apply_masks(img, final_boxes, masks, final_scores, score_threshold=.5, mask_threshold=0.5)
+     
+            final_viz = draw_outputs(masked_box_viz, final_boxes, final_scores, final_labels, threshold=0.5)
+
+            viz = tpviz.stack_patches([
+                gt_viz, final_output_viz,
+                masked_box_viz, final_viz], 2, 2)
+
+            if os.environ.get('DISPLAY', None):
+                tpviz.interactive_imshow(viz)
+            cv2.imwrite("{}/{:03d}.png".format(output_dir, idx), viz)
+            pbar.update()
 
 def do_evaluate(pred_config, output_file):
     num_tower = max(cfg.TRAIN.NUM_GPUS, 1)
@@ -125,6 +181,7 @@ if __name__ == '__main__':
                         nargs='+')
     parser.add_argument('--output-pb', help='Save a model to .pb')
     parser.add_argument('--output-serving', help='Save a model to serving file')
+    parser.add_argument('--visualize_val', action='store_true', help='visualize intermediate results')
 
     args = parser.parse_args()
     if args.config:
@@ -147,6 +204,9 @@ if __name__ == '__main__':
 
     if args.visualize:
         do_visualize(MODEL, args.load)
+
+    if args.visualize_val:
+        do_visualize_val(MODEL, args.load)
     else:
         predcfg = PredictConfig(
             model=MODEL,

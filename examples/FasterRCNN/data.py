@@ -369,6 +369,50 @@ def get_train_dataflow():
         ds = MapData(ds, preprocess)
     return ds
 
+def get_val_dataflow():
+    """
+    Return a validation dataflow. Each datapoint consists of the following:
+
+    An image: (h, w, 3),
+
+    1 or more pairs of (anchor_labels, anchor_boxes):
+    anchor_labels: (h', w', NA)
+    anchor_boxes: (h', w', NA, 4)
+
+    gt_boxes: (N, 4)
+    gt_labels: (N,)
+
+    If MODE_MASK, gt_masks: (N, h, w)
+    """
+    roidbs = list(itertools.chain.from_iterable(DatasetRegistry.get(x).training_roidbs() for x in cfg.DATA.VAL))
+    print_class_histogram(roidbs)
+
+    # Filter out images that have no gt boxes, but this filter shall not be applied for testing.
+    # The model does support training with empty images, but it is not useful for COCO.
+    num = len(roidbs)
+    if cfg.DATA.FILTER_EMPTY_ANNOTATIONS:
+        roidbs = list(filter(lambda img: len(img["boxes"][img["is_crowd"] == 0]) > 0, roidbs))
+    logger.info(
+        "Filtered {} images which contain no non-crowd groudtruth boxes. Total #images for training: {}".format(
+            num - len(roidbs), len(roidbs)
+        )
+    )
+
+    ds = DataFromList(roidbs, shuffle=True)
+
+    preprocess = TrainingDataPreprocessor(cfg)
+
+    if cfg.DATA.NUM_WORKERS > 0:
+        if cfg.TRAINER == "horovod":
+            buffer_size = cfg.DATA.NUM_WORKERS * 10  # one dataflow for each process, therefore don't need large buffer
+            ds = MultiThreadMapData(ds, cfg.DATA.NUM_WORKERS, preprocess, buffer_size=buffer_size)
+            # MPI does not like fork()
+        else:
+            buffer_size = cfg.DATA.NUM_WORKERS * 20
+            ds = MultiProcessMapData(ds, cfg.DATA.NUM_WORKERS, preprocess, buffer_size=buffer_size)
+    else:
+        ds = MapData(ds, preprocess)
+    return ds
 
 def get_eval_dataflow(name, shard=0, num_shards=1):
     """
