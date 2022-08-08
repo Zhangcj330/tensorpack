@@ -71,7 +71,13 @@ class RoofDetection(DatasetSplit):
         from pycocotools.cocoeval import COCOeval
         ret = {}
         has_mask = "segmentation" in results[0]  # results will be modified by loadRes
-
+            # The usage for CocoEval is as follows:
+        #  cocoGt=..., cocoDt=...       # load dataset and results
+        #  E = CocoEval(cocoGt,cocoDt); # initialize CocoEval object
+        #  E.params.recThrs = ...;      # set parameters as desired
+        #  E.evaluate();                # run per image evaluation
+        #  E.accumulate();              # accumulate per image results
+        #  E.summarize();               # display summary metrics of results
         cocoDt = self.coco.loadRes(results)
         cocoEval = COCOeval(self.coco, cocoDt, 'bbox')
         cocoEval.evaluate()
@@ -197,6 +203,21 @@ class RoofDetection(DatasetSplit):
         return self.load(add_gt=False)
 
     def eval_inference_results(self, results, output=None):
+        """
+        Args:
+            results (list[dict]): the inference results as dicts.
+                Each dict corresponds to one __instance__. It contains the following keys:
+
+                image_id (str): the id that matches `inference_roidbs`.
+                category_id (int): the category prediction, in range [1, #category]
+                bbox (list[float]): x1, y1, x2, y2
+                score (float):
+                segmentation: the segmentation mask in COCO's rle format.
+            output (str): the output file or directory to optionally save the results to.
+
+        Returns:
+            dict: the evaluation results.
+        """
         continuous_id_to_COCO_id = {v: k for k, v in self.COCO_id_to_category_id.items()}
         for res in results:
             # convert to COCO's incontinuous category id

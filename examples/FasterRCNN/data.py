@@ -393,12 +393,12 @@ def get_val_dataflow():
     if cfg.DATA.FILTER_EMPTY_ANNOTATIONS:
         roidbs = list(filter(lambda img: len(img["boxes"][img["is_crowd"] == 0]) > 0, roidbs))
     logger.info(
-        "Filtered {} images which contain no non-crowd groudtruth boxes. Total #images for training: {}".format(
+        "Filtered {} images which contain no non-crowd groudtruth boxes. Total #images for validation: {}".format(
             num - len(roidbs), len(roidbs)
         )
     )
 
-    ds = DataFromList(roidbs, shuffle=True)
+    ds = DataFromList(roidbs, shuffle=False) 
 
     preprocess = TrainingDataPreprocessor(cfg)
 
@@ -426,7 +426,7 @@ def get_eval_dataflow(name, shard=0, num_shards=1):
     num_imgs = len(roidbs)
     img_per_shard = num_imgs // num_shards
     img_range = (shard * img_per_shard, (shard + 1) * img_per_shard if shard + 1 < num_shards else num_imgs)
-
+    
     # no filter for training
     ds = DataFromListOfDict(roidbs[img_range[0]: img_range[1]], ["file_name", "image_id"])
 

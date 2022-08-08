@@ -171,7 +171,8 @@ def predict_dataflow(df, model_func, tqdm_bar=None):
                     'score': round(float(r.score), 4),
                 }
 
-                # also append segmentation to results
+                # also append segmentation to results 
+                #Interface for manipulating masks stored in RLE format.
                 if r.mask is not None:
                     rle = cocomask.encode(
                         np.array(r.mask[:, :, None], order='F'))[0]

@@ -34,7 +34,8 @@ def draw_annotation(img, boxes, klass, polygons=None,masks=None, is_crowd=None):
             mask = polygons_to_mask(p, img.shape[0], img.shape[1])
             img = draw_mask(img, mask)
     if masks is not None:
-        img = draw_mask(img, mask)
+        for mask in masks:
+            img = draw_mask(img, mask)
     return img
 
 
@@ -141,6 +142,25 @@ def draw_mask(im, mask, alpha=0.5, color=None):
     im = im.astype('uint8')
     return im
 
+def draw_final_outputs_mask(img, results):
+    """
+    Args:
+        results: [DetectionResult]
+    """
+    img_bw = img.mean(axis=2)
+    img_bw = np.stack([img_bw] * 3, axis=2)
+    
+    if len(results) == 0:
+        return img_bw
+
+    boxes = np.asarray([r.box for r in results])
+
+    for r in results:
+        img_bw = draw_mask(img_bw, r.mask)
+
+    tags = ["{},{:.2f}".format(cfg.DATA.CLASS_NAMES[r.class_id], r.score) for r in results]
+    ret = viz.draw_boxes(img_bw, boxes, tags)
+    return ret
 
 def get_mask(img, box, mask, threshold=.5):
     box = box.astype(int)
