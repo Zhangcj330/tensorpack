@@ -112,7 +112,7 @@ def do_visualize(model, model_path, nr_visualize=100, output_dir='output'):
             cv2.imwrite("{}/{:03d}.png".format(output_dir, idx), viz)
             pbar.update()
 
-def do_visualize_val(model, model_path, nr_visualize=20, output_dir='visualizaion_output_val'):
+def do_visualize_val(model, model_path, nr_visualize=142, output_dir='visualizaion_output_val'):
     """
     Visualize some intermediate results (proposals, raw predictions) inside the pipeline.
     """
@@ -221,6 +221,23 @@ def do_evaluate(pred_config, output_file):
         # give preditions and return COCO metrics
         DatasetRegistry.get(dataset).eval_inference_results(all_results, output)
 
+def do_test_evaluate(pred_config, output_file):
+    num_tower = max(cfg.TRAIN.NUM_GPUS, 1)
+    graph_funcs = MultiTowerOfflinePredictor(
+        pred_config, list(range(num_tower))).get_predictors()
+
+    for dataset in cfg.DATA.TEST:
+        logger.info("Evaluating {} ...".format(dataset))
+        dataflows = [
+            get_eval_dataflow(dataset, shard=k, num_shards=num_tower)
+            for k in range(num_tower)]
+        
+        # get inference results 
+        all_results = multithread_predict_dataflow(dataflows, graph_funcs)
+        output = output_file + '-' + dataset
+        # check eval_inference_results inside roof dataset
+        # give preditions and return COCO metrics
+        DatasetRegistry.get(dataset).eval_inference_results(all_results, output)
 
 def do_predict(pred_func, input_file):
     img = cv2.imread(input_file, cv2.IMREAD_COLOR)
@@ -235,11 +252,8 @@ def do_predict(pred_func, input_file):
     tpviz.interactive_imshow(viz)
 
 def do_test(pred_func, input_file):
-    if os.path.isdir('test_output'):
-        shutil.rmtree('test_output')
-    fs.mkdir_p('test_output')
     start_image = timeit.default_timer() 
-    name = os.path.basename(input_file)
+    name = os.path.splitext(os.path.basename(input_file))[0]
     img = cv2.imread(input_file, cv2.IMREAD_COLOR)
     start_prediction = timeit.default_timer() 
     results = predict_image(img, pred_func)
@@ -273,6 +287,8 @@ if __name__ == '__main__':
     parser.add_argument('--visualize_val', action='store_true', help='visualize intermediate results')
     parser.add_argument('--test', help="Run prediction on a given image. "
                                           "This argument is the path to the input image file", nargs='+')
+    parser.add_argument('--evaluate_test', help="Run evaluation for test set if test set also have annotations. "
+                                           "This argument is the path to the output json evaluation file")                                     
 
     args = parser.parse_args()
     if args.config:
@@ -290,7 +306,7 @@ if __name__ == '__main__':
     assert args.load
     finalize_configs(is_training=False)
 
-    if args.predict or args.visualize:
+    if args.predict or args.visualize or args.visualize_val or args.test:
         cfg.TEST.RESULT_SCORE_THRESH = cfg.TEST.RESULT_SCORE_THRESH_VIS
 
     if args.visualize:
@@ -315,8 +331,9 @@ if __name__ == '__main__':
                 do_predict(predictor, image_file)
         elif args.test:
             tester = OfflinePredictor(predcfg)
-            start2 = timeit.default_timer()
-            print("2 :",start2)
+            if os.path.isdir('test_output'):
+                shutil.rmtree('test_output')
+            fs.mkdir_p('test_output')
             time_read = []
             time_predict = []
             for image_file in args.test:
@@ -332,6 +349,9 @@ if __name__ == '__main__':
         elif args.evaluate:
             assert args.evaluate.endswith('.json'), args.evaluate
             do_evaluate(predcfg, args.evaluate)
+        elif args.evaluate_test:
+            assert args.evaluate_test.endswith('.json'), args.evaluate_test
+            do_test_evaluate(predcfg, args.evaluate_test)
         elif args.benchmark:
             df = get_eval_dataflow(cfg.DATA.VAL[0])
             df.reset_state()

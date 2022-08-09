@@ -98,6 +98,7 @@ _C.DATA.BASEDIR = '~/data/pylon'
 _C.DATA.TRAIN = ('roof_train-pylon',)   # i.e. trainval35k
 # Each VAL dataset will be evaluated separately (instead of concatenated)
 _C.DATA.VAL = ('roof_val-pylon',)  # AKA minival2014
+_C.DATA.TEST = ('roof_test-pylon',) 
 
 # These two configs will be populated later inside `finalize_configs`.
 _C.DATA.NUM_CATEGORY = -1  # without the background class (e.g., 80 for COCO)
@@ -224,12 +225,12 @@ _C.CASCADE.IOUS = [0.5, 0.6, 0.7]
 _C.CASCADE.BBOX_REG_WEIGHTS = [[10., 10., 5., 5.], [20., 20., 10., 10.], [30., 30., 15., 15.]]
 
 # testing -----------------------
-_C.TEST.FRCNN_NMS_THRESH = 0.5
+_C.TEST.FRCNN_NMS_THRESH = 0.45 # larger the number, more predication bbox to show, get rid of bbox overlap IOU > FRCNN_NMS_THRESH
 
 # Smaller threshold value gives significantly better mAP. But we use 0.05 for consistency with Detectron.
 # mAP with 1e-4 threshold can be found at https://github.com/tensorpack/tensorpack/commit/26321ae58120af2568bdbf2269f32aa708d425a8#diff-61085c48abee915b584027e1085e1043  # noqa
 _C.TEST.RESULT_SCORE_THRESH = 0.05
-_C.TEST.RESULT_SCORE_THRESH_VIS = 0.5   # only visualize confident results
+_C.TEST.RESULT_SCORE_THRESH_VIS = 0.88  # only visualize confident results
 _C.TEST.RESULTS_PER_IM = 100
 
 _C.freeze()  # avoid typo / wrong config keys
