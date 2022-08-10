@@ -112,7 +112,7 @@ def do_visualize(model, model_path, nr_visualize=100, output_dir='output'):
             cv2.imwrite("{}/{:03d}.png".format(output_dir, idx), viz)
             pbar.update()
 
-def do_visualize_val(model, model_path, nr_visualize=142, output_dir='visualizaion_output_val'):
+def do_visualize_val(model, model_path, nr_visualize=20, output_dir='visualizaion_output_val'):
     """
     Visualize some intermediate results (proposals, raw predictions) inside the pipeline.
     """
@@ -182,9 +182,9 @@ def do_visualize_val(model, model_path, nr_visualize=142, output_dir='visualizai
                            [None] * len(final_labels))]
             final_output_viz = draw_final_outputs(img, results)
 
-            masked_box_viz = apply_masks(img, final_boxes, masks, final_scores, score_threshold=.5, mask_threshold=0.5)
+            masked_box_viz = apply_masks(img, final_boxes, masks, final_scores, score_threshold=.8, mask_threshold=0.5)
      
-            final_viz = draw_outputs(masked_box_viz, final_boxes, final_scores, final_labels, threshold=0.5)
+            final_viz = draw_outputs(masked_box_viz, final_boxes, final_scores, final_labels, threshold=0.8)
 
             viz = tpviz.stack_patches([
                 gt_viz, final_output_viz,
