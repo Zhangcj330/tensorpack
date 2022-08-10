@@ -165,7 +165,6 @@ def draw_final_outputs_mask(img, results):
 def get_mask(img, box, mask, threshold=.5):
     box = box.astype(int)
     color = PALETTE_RGB[np.random.choice(len(PALETTE_RGB))][::-1]
-    print_image = cv2.resize(mask, (box[2]-box[0], box[3]-box[1]))
     a_mask = np.stack([(cv2.resize(mask, (box[2]-box[0], box[3]-box[1])) > threshold).astype(np.int8)]*3, axis=2)
     sub_image = img[box[1]:box[3],box[0]:box[2],:].astype(np.uint8)
     sub_image = np.where(a_mask==1, sub_image * (1 - 0.5) + color * 0.5, sub_image)
