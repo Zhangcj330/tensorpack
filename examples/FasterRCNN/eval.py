@@ -83,7 +83,8 @@ def _paste_mask(box, mask, shape):
         xs = (xs - box[0]) / (box[2] - box[0]) * mask.shape[1]
         # Waste a lot of compute since most indices are out-of-border
         res = mask_continuous(xs, ys)
-        return (res >= 0.5).astype('uint8')
+        # test each pixels > threshold
+        return (res > 0.5).astype('uint8')
     else:
         # This method (inspired by Detectron) is less accurate but fast.
 

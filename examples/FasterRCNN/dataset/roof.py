@@ -252,7 +252,7 @@ def register_roof(basedir):
     #class_names = [ "Roof face"]  # noqa
     #class_names = ["BG"] + class_names
 
-    for split in ["train-pylon", "val-pylon"]:
+    for split in ["train-pylon", "val-pylon","test-pylon"]:
         name = "roof_" + split
         DatasetRegistry.register(name, lambda x=split: RoofDetection(basedir, x))
         DatasetRegistry.register_metadata(name, "class_names", ["BG", "Roof face"])

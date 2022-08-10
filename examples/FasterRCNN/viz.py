@@ -13,6 +13,19 @@ from common import polygons_to_mask
 import cv2
 from eval import DetectionResult
 
+def mask_regularization(mask): 
+    _, thresh = cv2.threshold(mask, 0, 255, cv2.THRESH_OTSU)
+    contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    area = []
+    for i in range(len(contours)): 
+        cnt = contours[i]
+        area.append(cv2.contourArea(cnt))
+    contour = contours[area.index(max(area))]
+    perimeter = cv2.arcLength(contour, True)
+    approx = cv2.approxPolyDP(contour, 0.009 * perimeter, True)
+    background = np.zeros(mask.shape)
+    return cv2.drawContours(background, [approx], -1, 255,thickness=cv2.FILLED)
+
 def draw_annotation(img, boxes, klass, polygons=None,masks=None, is_crowd=None):
     """Will not modify img"""
     labels = []
@@ -120,6 +133,7 @@ def draw_final_outputs_blackwhite(img, results):
             m = m | (m2 > 0)
         img_bw[m] = img[m]
 
+
     tags = ["{},{:.2f}".format(cfg.DATA.CLASS_NAMES[r.class_id], r.score) for r in results]
     ret = viz.draw_boxes(img_bw, boxes, tags)
     return ret
@@ -156,7 +170,8 @@ def draw_final_outputs_mask(img, results):
     boxes = np.asarray([r.box for r in results])
 
     for r in results:
-        img_bw = draw_mask(img_bw, r.mask)
+        regularized_mask = mask_regularization(r.mask)
+        img_bw = draw_mask(img_bw, regularized_mask)
 
     tags = ["{},{:.2f}".format(cfg.DATA.CLASS_NAMES[r.class_id], r.score) for r in results]
     ret = viz.draw_boxes(img_bw, boxes, tags)

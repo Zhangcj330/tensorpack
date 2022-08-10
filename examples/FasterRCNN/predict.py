@@ -243,7 +243,7 @@ def do_predict(pred_func, input_file):
     img = cv2.imread(input_file, cv2.IMREAD_COLOR)
     results = predict_image(img, pred_func)
     if cfg.MODE_MASK:
-        final = draw_final_outputs_blackwhite(img, results)
+        final = draw_final_outputs_blackwhite(img, results) 
     else:
         final = draw_final_outputs(img, results)
     viz = np.concatenate((img, final), axis=1)
