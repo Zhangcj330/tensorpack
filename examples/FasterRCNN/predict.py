@@ -112,7 +112,7 @@ def do_visualize(model, model_path, nr_visualize=100, output_dir='output'):
             cv2.imwrite("{}/{:03d}.png".format(output_dir, idx), viz)
             pbar.update()
 
-def do_visualize_val(model, model_path, nr_visualize=142, output_dir='visualizaion_output_val'):
+def do_visualize_val(model, model_path, nr_visualize=100, output_dir='visualizaion_output_val'):
     """
     Visualize some intermediate results (proposals, raw predictions) inside the pipeline.
     """

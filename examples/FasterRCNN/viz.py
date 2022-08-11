@@ -21,7 +21,7 @@ def mask_regularization(mask):
         cnt = contours[i]
         area.append(cv2.contourArea(cnt))
     contour = contours[area.index(max(area))]
-    perimeter = cv2.arcLengtInh(contour, True)
+    perimeter = cv2.arcLength(contour, True)
     approx = cv2.approxPolyDP(contour, 0.009 * perimeter, True)
     background = np.zeros(mask.shape)
     return cv2.drawContours(background, [approx], -1, 255,thickness=cv2.FILLED)
@@ -148,6 +148,7 @@ def draw_mask(im, mask, alpha=0.5, color=None):
         mask: a binary 1-channel image of the same size
         color: if None, will choose automatically
     """
+    # Reset mask colour to random colour to better visualization 
     if color is None:
         color=list(np.random.choice(range(255),size=3))
 #        color = PALETTE_RGB[np.random.choice(len(PALETTE_RGB))][::-1]
