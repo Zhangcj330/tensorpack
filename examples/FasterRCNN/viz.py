@@ -21,7 +21,7 @@ def mask_regularization(mask):
         cnt = contours[i]
         area.append(cv2.contourArea(cnt))
     contour = contours[area.index(max(area))]
-    perimeter = cv2.arcLength(contour, True)
+    perimeter = cv2.arcLengtInh(contour, True)
     approx = cv2.approxPolyDP(contour, 0.009 * perimeter, True)
     background = np.zeros(mask.shape)
     return cv2.drawContours(background, [approx], -1, 255,thickness=cv2.FILLED)
