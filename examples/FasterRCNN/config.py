@@ -122,16 +122,16 @@ _C.BACKBONE.WEIGHTS = ''
 # To train from an existing COCO model, use the path to that file, and change
 #   the other configurations according to that model.
 
-_C.BACKBONE.RESNET_NUM_BLOCKS = [3, 4, 6, 3]     # for resnet50
-# RESNET_NUM_BLOCKS = [3, 4, 23, 3]    # for resnet101
+#_C.BACKBONE.RESNET_NUM_BLOCKS = [3, 4, 6, 3]     # for resnet50
+_C.BACKBONE.RESNET_NUM_BLOCKS = [3, 4, 23, 3]    # for resnet101
 _C.BACKBONE.FREEZE_AFFINE = False   # do not train affine parameters inside norm layers
-_C.BACKBONE.NORM = 'FreezeBN'  # options: FreezeBN, SyncBN, GN, None
-_C.BACKBONE.FREEZE_AT = 2  # options: 0, 1, 2. How many stages in backbone to freeze (not training)
+_C.BACKBONE.NORM = 'GN'  # options: FreezeBN, SyncBN, GN, None
+_C.BACKBONE.FREEZE_AT = 0  # options: 0, 1, 2. How many stages in backbone to freeze (not training)
 
 # Use a base model with TF-preferred padding mode,
 # which may pad more pixels on right/bottom than top/left.
 # See https://github.com/tensorflow/tensorflow/issues/18213
-# In tensorpack model zoo, ResNet models with TF_PAD_MODE=False are marked with "-AlignPadding".
+# In tensorpack model zoo, ResNet modelCOCO-MaskRCNN-R101FPN9xGNCasAugScratch.npzs with TF_PAD_MODE=False are marked with "-AlignPadding".
 # All other models under `ResNet/` in the model zoo are using TF_PAD_MODE=True.
 # Using either one should probably give the same performance.
 # We use the "AlignPadding" one just to be consistent with caffe2.
@@ -179,7 +179,7 @@ _C.RPN.NEGATIVE_ANCHOR_THRESH = 0.3
 _C.RPN.FG_RATIO = 0.5  # fg ratio among selected RPN anchors
 _C.RPN.BATCH_PER_IM = 256  # total (across FPN levels) number of anchors that are marked valid
 _C.RPN.MIN_SIZE = 0
-_C.RPN.PROPOSAL_NMS_THRESH = 0.7
+_C.RPN.PROPOSAL_NMS_THRESH = 0.55
 # Anchors which overlap with a crowd box (IOA larger than threshold) will be ignored.
 # Setting this to a value larger than 1.0 will disable the feature.
 # It is disabled by default because Detectron does not do this.
@@ -207,30 +207,30 @@ _C.FRCNN.FG_RATIO = 0.25  # fg ratio in a ROI batch
 _C.FPN.ANCHOR_STRIDES = (4, 8, 16, 32, 64)  # strides for each FPN level. Must be the same length as ANCHOR_SIZES
 _C.FPN.PROPOSAL_MODE = 'Level'  # 'Level', 'Joint'
 _C.FPN.NUM_CHANNEL = 256
-_C.FPN.NORM = 'None'  # 'None', 'GN'
+_C.FPN.NORM = 'GN'  # 'None', 'GN'
 # The head option is only used in FPN. For C4 models, the head is C5
-_C.FPN.FRCNN_HEAD_FUNC = 'fastrcnn_2fc_head'
+_C.FPN.FRCNN_HEAD_FUNC = 'fastrcnn_4conv1fc_gn_head'
 # choices: fastrcnn_2fc_head, fastrcnn_4conv1fc_{,gn_}head
 _C.FPN.FRCNN_CONV_HEAD_DIM = 256
 _C.FPN.FRCNN_FC_HEAD_DIM = 1024
-_C.FPN.MRCNN_HEAD_FUNC = 'maskrcnn_up4conv_head'   # choices: maskrcnn_up4conv_{,gn_}head
+_C.FPN.MRCNN_HEAD_FUNC = 'maskrcnn_up4conv_gn_head'   # choices: maskrcnn_up4conv_{,gn_}head
 
 # Mask R-CNN
 _C.MRCNN.HEAD_DIM = 256
 _C.MRCNN.ACCURATE_PASTE = True  # slightly more aligned results, but very slow on numpy
 
 # Cascade R-CNN, only available in FPN mode
-_C.FPN.CASCADE = False
+_C.FPN.CASCADE = True
 _C.CASCADE.IOUS = [0.5, 0.6, 0.7]
 _C.CASCADE.BBOX_REG_WEIGHTS = [[10., 10., 5., 5.], [20., 20., 10., 10.], [30., 30., 15., 15.]]
 
 # testing -----------------------
-_C.TEST.FRCNN_NMS_THRESH = 0.7 # larger the number, more predication bbox to show, get rid of bbox overlap IOU > FRCNN_NMS_THRESH
+_C.TEST.FRCNN_NMS_THRESH = 0.5 # larger the number, more predication bbox to show, get rid of bbox overlap IOU > FRCNN_NMS_THRESH
 
 # Smaller threshold value gives significantly better mAP. But we use 0.05 for consistency with Detectron.
 # mAP with 1e-4 threshold can be found at https://github.com/tensorpack/tensorpack/commit/26321ae58120af2568bdbf2269f32aa708d425a8#diff-61085c48abee915b584027e1085e1043  # noqa
 _C.TEST.RESULT_SCORE_THRESH = 0.05
-_C.TEST.RESULT_SCORE_THRESH_VIS = 0.80  # only visualize confident results
+_C.TEST.RESULT_SCORE_THRESH_VIS = 0.88  # only visualize confident results
 _C.TEST.RESULTS_PER_IM = 100
 
 _C.freeze()  # avoid typo / wrong config keys
