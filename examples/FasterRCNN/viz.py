@@ -149,7 +149,8 @@ def draw_mask(im, mask, alpha=0.5, color=None):
         color: if None, will choose automatically
     """
     if color is None:
-        color = PALETTE_RGB[np.random.choice(len(PALETTE_RGB))][::-1]
+        color=list(np.random.choice(range(255),size=3))
+#        color = PALETTE_RGB[np.random.choice(len(PALETTE_RGB))][::-1]
     color = np.asarray(color, dtype=np.float32)
     im = np.where(np.repeat((mask > 0)[:, :, None], 3, axis=2),
                   im * (1 - alpha) + color * alpha, im)
